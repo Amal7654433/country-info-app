@@ -15,29 +15,29 @@ export interface Country {
 
 const mapCountryData = (data: any): Country => {
   return {
-    name: data.name.common,
-    code: data.cca2,
+    name: data.name,
+    code: data.alpha2Code,
     population: data.population,
     region: data.region,
-    capital: data.capital || [],
-    flag: data.flags?.png || data.flags?.svg || "",
-    currencies: data.currencies ? Object.keys(data.currencies) : [],
-    languages: data.languages ? Object.values(data.languages) as string[] : [],
-    timezones: data.timezones || []
+    capital: data.capital ? [data.capital] : [],
+    flag: data.flag || data.flags?.png || data.flags?.svg || "",
+    currencies: data.currencies ? data.currencies.map((c: any) => c.code) : [],
+    languages: data.languages ? data.languages.map((l: any) => l.name) : [],
+    timezones: data.timezones || [],
   };
 };
 
 export const getAllCountries = async (): Promise<Country[]> => {
-    console.log('hello world')
+  console.log("hello world");
   const cacheKey = "allCountries";
   const cached = cache.get<Country[]>(cacheKey);
 
   if (cached) {
     return cached;
   }
-console.log('2nd step finished')
-  const res = await apiClient.get("/all");
-  console.log(res,'this is response 3rd step')
+
+  const res = await apiClient.get("/");
+  
   const countries = res.data.map(mapCountryData);
   cache.set(cacheKey, countries);
   return countries;
@@ -61,7 +61,9 @@ export const getCountryByCode = async (code: string): Promise<Country> => {
   return country;
 };
 
-export const getCountriesByRegion = async (region: string): Promise<Country[]> => {
+export const getCountriesByRegion = async (
+  region: string
+): Promise<Country[]> => {
   const cacheKey = `region_${region.toLowerCase()}`;
   const cached = cache.get<Country[]>(cacheKey);
 
@@ -101,7 +103,7 @@ export const searchCountries = async (filters: {
   let filtered = countries;
 
   if (filters.capital) {
-    filtered = filtered.filter(c =>
+    filtered = filtered.filter((c) =>
       c.capital?.some((cap: string) =>
         cap.toLowerCase().includes(filters.capital!.toLowerCase())
       )
@@ -109,15 +111,13 @@ export const searchCountries = async (filters: {
   }
 
   if (filters.region) {
-    filtered = filtered.filter(c =>
-      c.region.toLowerCase() === filters.region!.toLowerCase()
+    filtered = filtered.filter(
+      (c) => c.region.toLowerCase() === filters.region!.toLowerCase()
     );
   }
 
   if (filters.timezone) {
-    filtered = filtered.filter(c =>
-      c.timezones?.includes(filters.timezone!)
-    );
+    filtered = filtered.filter((c) => c.timezones?.includes(filters.timezone!));
   }
 
   const result = filtered.map(mapCountryData);
